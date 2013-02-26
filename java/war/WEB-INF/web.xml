@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	version="2.5">
+	<servlet>
+		<servlet-name>launcher</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.Launcher</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet>
+		<servlet-name>HttpInvoke</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.HttpInvokeServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>XmppInvoke</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.XmppInvokeServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>BackendStart</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.BackendInitServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>DNSQuery</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.DNSServlet</servlet-class>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>BackendStart</servlet-name>
+		<url-pattern>/_ah/start/</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>XmppInvoke</servlet-name>
+		<url-pattern>/_ah/xmpp/message/chat/</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>HttpInvoke</servlet-name>
+		<url-pattern>/invoke</url-pattern>
+	</servlet-mapping>
+
+	<security-constraint>
+		<auth-constraint>
+			<role-name>admin</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<url-pattern>/admin</url-pattern>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>admin</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+
+	<servlet>
+		<servlet-name>Index</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.page.IndexServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>Index</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>DNSQuery</servlet-name>
+		<url-pattern>/dns</url-pattern>
+	</servlet-mapping>
+	<servlet>
+		<servlet-name>Admin</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.page.AdminServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>Admin</servlet-name>
+		<url-pattern>/admin</url-pattern>
+	</servlet-mapping>
+
+	<servlet>
+		<servlet-name>SignOutRedirect</servlet-name>
+		<servlet-class>org.snova.gae.server.servlet.page.SignoutRedirectServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>SignOutRedirect</servlet-name>
+		<url-pattern>/signoutredirect</url-pattern>
+	</servlet-mapping>
+
+	<error-page>
+		<error-code>403</error-code>
+		<location>/signoutredirect</location>
+	</error-page>
+
+</web-app>

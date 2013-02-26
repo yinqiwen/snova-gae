@@ -1,0 +1,115 @@
+snova-gae Changelog
+===================
+Changes in version 0.15.0(2012.08.18)
+-------------------------------------------
+
+** Features
+   * Add pipeline support
+   
+** Improvement
+   * 
+      
+** Task
+   * NA
+
+Changes in version 0.14.0(2012.06.16)
+-------------------------------------------
+
+** Features
+   * 
+   
+** Improvement
+   * [Issue 76] Fix (GAE Java Server)
+   * Some concurrent bugs when video/file was range fetched(GAE Client)
+   * Blacklist operation bug fic (GAE Go server)
+      
+** Task
+   * NA
+
+Changes in version 0.13.0(2012.04.22)
+-------------------------------------------
+
+** Features
+   * 
+   
+** Improvement
+   * [Issue 68] Fix
+      
+** Task
+   * NA
+
+Changes in version 0.12.0204(2012.02.26)
+-------------------------------------------
+
+** Features
+   * Reload modified config file automatically
+   
+** Improvement
+   * 
+      
+** Task
+   * NA
+
+Changes in version 0.12.0120
+-------------------------------------------
+Initial version
+
+** Features
+   * Add range fetch retry mechanism
+   
+** Bug
+   * NA
+      
+** Task
+   * NA
+   
+Changes in version 0.12.0107(2012.01.07)
+-------------------------------------------
+Initial version
+
+** Features
+   * Full async HTTP connection implementation
+   
+** Bug
+   * Fix: XMPP split(Java client/server) 
+      
+** Task
+   * NA
+
+Changes in version 0.12.0101(2012.01.01)
+-------------------------------------------
+Initial version
+
+** Features
+   * Auto refresh changed configuration
+   
+** Improvement
+   * Change fetch deadline to 10s(Go)
+   * Change default retry count to 1(Java)
+      
+** Task
+   * NA
+
+
+Changes in version 0.11.1111 (2011.11.11)
+-------------------------------------------
+Initial version
+
+** Features
+   * HTTP/HTTPS/XMPP transport support
+   * Compress/Encrypt transport(Snappy/FastLZ/LZF/QuickLZ, SE1) 
+   * Java/Go server implementation
+   * Google proxy chain support
+   * AppID share center
+   
+** Note
+   * Do NOT use XMPP transport in general case since free quota is only 10000/day
+   
+** Task
+   * NA
+
+
+
+
+
+
