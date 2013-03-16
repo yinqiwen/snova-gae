@@ -28,7 +28,6 @@ public class IndexServlet extends HttpServlet
 {
 	
 	private static  String INDEX_PAGE  = null;
-	
 	static
 	{
 		InputStream is = IndexServlet.class.getResourceAsStream("index.html.template");

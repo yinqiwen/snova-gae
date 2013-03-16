@@ -10,9 +10,8 @@ import javax.servlet.http.HttpServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snova.gae.common.event.GAEEvents;
+import org.snova.gae.server.config.ServerConfiguration;
 import org.snova.gae.server.handler.ServerEventHandler;
-import org.snova.gae.server.service.MasterNodeService;
-import org.snova.gae.server.service.ServerConfigurationService;
 
 /**
  * @author yinqiwen
@@ -20,22 +19,19 @@ import org.snova.gae.server.service.ServerConfigurationService;
  */
 public class Launcher extends HttpServlet
 {
-
-	protected static Logger logger = LoggerFactory.getLogger(Launcher.class);
-
+	
+	protected static Logger	logger	= LoggerFactory.getLogger(Launcher.class);
+	
 	public static void initServer() throws ServletException
 	{
 		try
 		{
+			
 			ServerEventHandler handler = new ServerEventHandler();
 			GAEEvents.init(handler, true);
-			if(ServerConfigurationService.getServerConfig().isMasterNode())
+			//if (logger.isInfoEnabled())
 			{
-				MasterNodeService.init();
-			}
-			if (logger.isInfoEnabled())
-			{
-				logger.info("hyk-proxy v2 GAE Server init success!");
+				logger.info("Snova GAE Server init success!");
 			}
 		}
 		catch (Exception e)
@@ -44,11 +40,12 @@ public class Launcher extends HttpServlet
 			throw new ServletException(e);
 		}
 	}
-
+	
 	@Override
 	public void init(ServletConfig config) throws ServletException
 	{
 		super.init(config);
+		ServerConfiguration.initServerConfig(getServletContext());
 		initServer();
 	}
 }

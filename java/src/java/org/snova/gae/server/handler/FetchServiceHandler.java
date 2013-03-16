@@ -3,31 +3,22 @@
  */
 package org.snova.gae.server.handler;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
+import java.util.Map;
 
+import org.arch.buffer.Buffer;
+import org.arch.common.KeyValuePair;
 import org.arch.event.Event;
 import org.arch.event.http.HTTPRequestEvent;
 import org.arch.event.http.HTTPResponseEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snova.gae.common.EventHeaderTags;
-import org.snova.gae.common.auth.User;
-import org.snova.gae.common.config.GAEServerConfiguration;
 import org.snova.gae.common.http.RangeHeaderValue;
-import org.snova.gae.server.service.ServerConfigurationService;
-import org.snova.gae.server.service.UserManagementService;
-import org.snova.gae.server.util.GAEServerHelper;
-
-import com.google.appengine.api.capabilities.CapabilitiesService;
-import com.google.appengine.api.capabilities.CapabilitiesServiceFactory;
-import com.google.appengine.api.capabilities.Capability;
-import com.google.appengine.api.capabilities.CapabilityStatus;
-import com.google.appengine.api.urlfetch.HTTPHeader;
-import com.google.appengine.api.urlfetch.HTTPRequest;
-import com.google.appengine.api.urlfetch.HTTPResponse;
-import com.google.appengine.api.urlfetch.URLFetchService;
-import com.google.appengine.api.urlfetch.URLFetchServiceFactory;
-import com.google.apphosting.api.ApiProxy.OverQuotaException;
+import org.snova.gae.server.config.ServerConfiguration;
 
 /**
  * @author qiyingwang
@@ -35,13 +26,7 @@ import com.google.apphosting.api.ApiProxy.OverQuotaException;
  */
 public class FetchServiceHandler
 {
-	protected Logger	        logger	        = LoggerFactory
-	                                                    .getLogger(getClass());
-	
-	private CapabilitiesService	capabilities	= CapabilitiesServiceFactory
-	                                                    .getCapabilitiesService();
-	protected URLFetchService	urlFetchService	= URLFetchServiceFactory
-	                                                    .getURLFetchService();
+	protected Logger	logger	= LoggerFactory.getLogger(getClass());
 	
 	public FetchServiceHandler()
 	{
@@ -56,101 +41,144 @@ public class FetchServiceHandler
 		errorResponse.content.write(ret.getBytes());
 	}
 	
-	public Event fetch(HTTPRequestEvent req)
+	private HTTPResponseEvent fetchResponse(HTTPRequestEvent req)
+	        throws IOException
 	{
-		Event ret = null;
 		HTTPResponseEvent errorResponse = new HTTPResponseEvent();
-		if (capabilities.getStatus(Capability.URL_FETCH).getStatus()
-		        .equals(CapabilityStatus.DISABLED))
-		{
-			errorResponse.statusCode = 503;
-			fillErrorResponse(errorResponse,
-			        "URL Fetch service is no available in maintain time.");
-			return errorResponse;
-		}
-		GAEServerConfiguration cfg = ServerConfigurationService
-		        .getServerConfig();
-		if (cfg.isMasterNode())
+		if (ServerConfiguration.getServerConfig().isInBlacklist(
+		        req.getHeader("Host")))
 		{
 			fillErrorResponse(errorResponse,
-			        "Current snova node is master which provide none proxy service.");
+			        "This site:" + req.getHeader("Host") + " is in blacklist.");
 			return errorResponse;
-		}
-		Object[] attachment = (Object[]) req.getAttachment();
-		EventHeaderTags tags = (EventHeaderTags) attachment[0];
-		if (UserManagementService.userAuthServiceAvailable(tags.token))
-		{
-			User user = UserManagementService.getUserWithToken(tags.token);
-			if (null == user)
-			{
-				errorResponse.statusCode = 401;
-				fillErrorResponse(errorResponse,
-				        "You are not a authorized user for this proxy server.");
-				return errorResponse;
-			}
 		}
 		
-		HTTPRequest fetchReq = null;
+		HttpURLConnection connection = null;
 		try
 		{
-			fetchReq = GAEServerHelper.toHTTPRequest(req);
-			
+			URL url = new URL(req.url);
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setInstanceFollowRedirects(false);
+			if (req.content.readable())
+			{
+				connection.setDoOutput(true);
+			}
+			connection.setRequestMethod(req.method);
+			for (KeyValuePair<String, String> header : req.getHeaders())
+			{
+				connection.addRequestProperty(header.getName(),
+				        header.getValue());
+			}
+			connection.connect();
+			if (req.content.readable())
+			{
+				connection.getOutputStream()
+				        .write(req.content.getRawBuffer(),
+				                req.content.getReadIndex(),
+				                req.content.readableBytes());
+			}
 		}
-		catch (MalformedURLException e)
+		catch (Exception e)
 		{
 			errorResponse.statusCode = 400;
 			fillErrorResponse(errorResponse, "Invalid fetch url:" + req.url);
 			return errorResponse;
 		}
-		HTTPResponse fetchRes = null;
+		HTTPResponseEvent responseEvent = new HTTPResponseEvent();
+		responseEvent.statusCode = connection.getResponseCode();
 		
-		int retry = cfg.getFetchRetryCount();
-		do
+		if (responseEvent.statusCode == 302 && req.containsHeader("Range"))
+		{
+			responseEvent.addHeader("X-Range", req.getHeader("Range"));
+		}
+		Map<String, List<String>> rh = connection.getHeaderFields();
+		for (String name : rh.keySet())
+		{
+			if (null != name && name.length() > 0)
+			{
+				List<String> vs = rh.get(name);
+				for (String v : vs)
+				{
+					responseEvent.addHeader(name, v);
+				}
+			}
+		}
+		Buffer buffer = new Buffer(4096);
+		byte[] tmp = new byte[65536];
+		while (true)
 		{
 			try
 			{
-				fetchRes = urlFetchService.fetch(fetchReq);
-				HTTPResponseEvent responseEvent = GAEServerHelper
-				        .toHttpResponseExchange(fetchRes);
-				if (responseEvent.statusCode == 302
-				        && req.containsHeader("Range"))
+				int n = connection.getInputStream().read(tmp);
+				if (n > 0)
 				{
-					responseEvent.addHeader("X-Range", req.getHeader("Range"));
+					buffer.write(tmp, 0, n);
 				}
-				ret = responseEvent;
-//				if(fetchRes.getResponseCode() == 400 || fetchRes.getResponseCode() == 403)
-//				{
-//					logger.error("#####Request is " + req.toString());
-//					logger.error("#####Request body len  is " + req.content.getRawBuffer().length);
-//				}
-				
-			}
-			catch (OverQuotaException e)
-			{
-				errorResponse.statusCode = 503;
-				fillErrorResponse(errorResponse, "Over daily quota limit.");
-				return errorResponse;
+				else
+				{
+					break;
+				}
 			}
 			catch (Exception e)
 			{
-				logger.error("Failed to fetch URL:" + req.url, e);
-				retry--;
-				if (!req.containsHeader("Range"))
+				break;
+			}
+		}
+		responseEvent.content = buffer;
+		if (responseEvent.content.readable())
+		{
+			responseEvent.setHeader("Content-Length",
+			        "" + buffer.readableBytes());
+		}
+		else
+		{
+			responseEvent.setHeader("Content-Length", "0");
+		}
+		return responseEvent;
+	}
+	
+	public Event fetch(HTTPRequestEvent req)
+	{
+		ServerConfiguration cfg = ServerConfiguration.getServerConfig();
+		HTTPResponseEvent response = new HTTPResponseEvent();
+		try
+		{
+			response = fetchResponse(req);
+		}
+		catch (Exception e)
+		{
+			logger.error("Failed to fetch URL:" + req.url, e);
+			if (!req.containsHeader("Range"))
+			{
+				if (e.getClass().getName()
+				        .contains("ResponseTooLargeException"))
 				{
-					HTTPHeader rangeHeader = new HTTPHeader("Range",
+					req.addHeader("Range",
 					        new RangeHeaderValue(0,
 					                cfg.getRangeFetchLimit() - 1).toString());
-					fetchReq.addHeader(rangeHeader);
+					try
+					{
+						response = fetchResponse(req);
+					}
+					catch (Exception e1)
+					{
+						response.statusCode = 408;
+					}
+				}
+				else if (e.getClass().getName().contains("OverQuotaException"))
+				{
+					response.statusCode = 408;
+				}
+				else
+				{
+					response.statusCode = 503;
 				}
 			}
-		} while (null == ret && retry > 0);
-		
-		if (null == fetchRes)
-		{
-			errorResponse.statusCode = 408;
-			fillErrorResponse(errorResponse, "Fetch timeout for url:" + req.url);
-			ret = errorResponse;
+			else
+			{
+				response.statusCode = 503;
+			}
 		}
-		return ret;
+		return response;
 	}
 }

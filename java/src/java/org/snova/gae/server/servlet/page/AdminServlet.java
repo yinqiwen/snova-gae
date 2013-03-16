@@ -18,10 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.snova.gae.common.GAEPluginVersion;
-import org.snova.gae.server.handler.AccountServiceHandler;
-
-import com.google.appengine.api.users.UserService;
-import com.google.appengine.api.users.UserServiceFactory;
+import org.snova.gae.server.config.ServerConfiguration;
 
 /**
  *
@@ -29,10 +26,11 @@ import com.google.appengine.api.users.UserServiceFactory;
 public class AdminServlet extends HttpServlet
 {
 	private static String	INDEX_PAGE	= null;
-
+	
 	static
 	{
-		InputStream is = IndexServlet.class.getResourceAsStream("admin.html.template");
+		InputStream is = IndexServlet.class
+		        .getResourceAsStream("admin.html.template");
 		byte[] buffer = new byte[4096];
 		try
 		{
@@ -40,20 +38,19 @@ public class AdminServlet extends HttpServlet
 			INDEX_PAGE = new String(buffer, 0, len);
 			is.close();
 		}
-		catch(IOException e)
+		catch (IOException e)
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
+	
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+	        throws ServletException, IOException
 	{
-		UserService userService = UserServiceFactory.getUserService();
-		//User user = userService.getCurrentUser();
-		String sigouturl = userService.createLogoutURL("/") ;
-		String out = String.format(INDEX_PAGE, GAEPluginVersion.value, AccountServiceHandler.getRootUser().getPasswd(), sigouturl);
+		String out = String.format(INDEX_PAGE, GAEPluginVersion.value,
+		        ServerConfiguration.getServerConfig().getAllUser());
 		resp.setStatus(200);
 		resp.setContentLength(out.length());
 		resp.getWriter().write(out);

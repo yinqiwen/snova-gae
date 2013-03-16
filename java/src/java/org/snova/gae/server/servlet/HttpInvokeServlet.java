@@ -56,11 +56,6 @@ public class HttpInvokeServlet extends HttpServlet
                         }
                         public void send(Buffer buf)
                         {
-                    		if(logger.isDebugEnabled())
-                    		{
-                    			logger.debug("Send result back with body len:" + buf.readableBytes());
-                    		}
-      
                     		resp.setStatus(200);
                     		resp.setContentType("application/octet-stream");
                     		resp.setContentLength(buf.readableBytes());

@@ -9,144 +9,81 @@
  */
 package org.snova.gae.common.auth;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.arch.buffer.Buffer;
-import org.arch.buffer.BufferHelper;
-import org.arch.buffer.CodecObject;
-
 /**
  *
  */
-public class User implements CodecObject
+public class User
 {
-	public String getEmail()
-	{
-		return email;
-	}
-
-	public void setEmail(String email)
-	{
-		this.email = email;
-	}
-
-	public String getGroup()
-	{
-		return group;
-	}
-
-	public void setGroup(String group)
-	{
-		this.group = group;
-	}
-
 	public String getPasswd()
 	{
 		return passwd;
 	}
-
+	
 	public void setPasswd(String passwd)
 	{
 		this.passwd = passwd;
 	}
+	
+	private String	user;
+	@Override
+    public String toString()
+    {
+	    return "User [user=" + user + ", passwd=" + passwd + "]";
+    }
+	private String	passwd;
 
-	public Set<String> getBlacklist()
+	
+	@Override
+	public int hashCode()
 	{
-		return blacklist;
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((passwd == null) ? 0 : passwd.hashCode());
+		result = prime * result + ((user == null) ? 0 : user.hashCode());
+		return result;
 	}
-
-	public String getBlacklistString()
+	
+	@Override
+	public boolean equals(Object obj)
 	{
-		StringBuilder buffer = new StringBuilder();
-		if (null != blacklist)
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		User other = (User) obj;
+		if (passwd == null)
 		{
-			for (String s : blacklist)
-			{
-				s = s.trim();
-				if (!s.isEmpty())
-				{
-					buffer.append(s).append(";");
-				}
-
-			}
+			if (other.passwd != null)
+				return false;
 		}
-
-		return buffer.toString();
-	}
-
-	public void setBlacklistString(String s)
-	{
-		blacklist = new HashSet<String>();
-		if(null == s)
+		else if (!passwd.equals(other.passwd))
+			return false;
+		if (user == null)
 		{
-			return;
+			if (other.user != null)
+				return false;
 		}
-		String[] ss = s.split(";");
-		for (String str : ss)
-		{
-			str = str.trim();
-			if (!str.isEmpty())
-			{
-				blacklist.add(str.trim());
-			}
-		}
-	}
-
-	public void setBlacklist(Set<String> blacklist)
-	{
-		this.blacklist = blacklist;
-	}
-
-	public String getAuthToken()
-	{
-		return authToken;
-	}
-
-	public void setAuthToken(String authToken)
-	{
-		this.authToken = authToken;
-	}
-
-	private String email;
-
-	private String passwd;
-
-	private String group;
-
-	private String authToken;
-
-	private Set<String> blacklist;
-
-	public boolean encode(Buffer buffer)
-	{
-		BufferHelper.writeVarString(buffer, email);
-		BufferHelper.writeVarString(buffer, passwd);
-		BufferHelper.writeVarString(buffer, group);
-		BufferHelper.writeVarString(buffer, authToken);
-		BufferHelper.writeSet(buffer, blacklist);
+		else if (!user.equals(other.user))
+			return false;
 		return true;
 	}
-
-	public boolean decode(Buffer buffer)
+	
+	public String getUser()
 	{
-		try
-		{
-			email = BufferHelper.readVarString(buffer);
-			passwd = BufferHelper.readVarString(buffer);
-			group = BufferHelper.readVarString(buffer);
-			authToken = BufferHelper.readVarString(buffer);
-			blacklist = BufferHelper.readSet(buffer, String.class);
-			return true;
-		}
-		catch (Throwable e)
-		{
-			return false;
-		}
-
+		return user;
 	}
+	
+	public User(String passwd, String user)
+    {
+	    super();
+	    this.passwd = passwd;
+	    this.user = user;
+    }
 
+	public void setUser(String user)
+	{
+		this.user = user;
+	}
 }
