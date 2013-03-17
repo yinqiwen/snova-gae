@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+	"util"
 )
 
 func buildHTTPRequest(ev *event.HTTPRequestEvent) *http.Request {
@@ -85,9 +87,14 @@ func Fetch(context appengine.Context, ev *event.HTTPRequestEvent) event.Event {
 		}
 		context.Errorf("Failed to fetch URL[%s] for reason:%v", ev.Url, err)
 		retryCount--
-		if req.Header.Get("Range") == "" {
+		if strings.EqualFold(req.Method, "GET") && strings.Contains(err.Error(), "RESPONSE_TOO_LARGE") {
 			rangeLimit := Cfg.RangeFetchLimit
-			req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", rangeLimit-1))
+			rangestart := 0
+			rangeheader := req.Header.Get("Range")
+			if len(rangeheader) > 0 {
+				rangestart, _ = util.ParseRangeHeaderValue(rangeheader)
+			}
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", rangestart, rangeLimit-1))
 		}
 	}
 	errorResponse.Status = 408

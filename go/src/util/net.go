@@ -57,6 +57,18 @@ func GetLocalIP() string {
 	return ipp[0]
 }
 
+func ParseRangeHeaderValue(value string) (startPos, endPos int) {
+	vs := strings.Split(value, "=")
+	vs = strings.Split(vs[1], "-")
+	startPos, _ = strconv.Atoi(vs[0])
+	if tmp, err := strconv.Atoi(vs[1]); nil != err {
+		endPos = -1
+	} else {
+		endPos = tmp
+	}
+	return
+}
+
 //func qhandler(m, r *dns.Msg, e error, data interface{}) {
 //	ips := make([]string, 0)
 //	if r != nil && r.Rcode == dns.RcodeSuccess {

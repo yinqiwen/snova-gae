@@ -148,31 +148,29 @@ public class FetchServiceHandler
 		catch (Exception e)
 		{
 			logger.error("Failed to fetch URL:" + req.url, e);
-			if (!req.containsHeader("Range"))
+			if (e.getClass().getName().contains("ResponseTooLargeException"))
 			{
-				if (e.getClass().getName()
-				        .contains("ResponseTooLargeException"))
+				String rangeHeader = req.getHeader("Range");
+				int rangeStart = 0;
+				if (null != rangeHeader)
 				{
-					req.addHeader("Range",
-					        new RangeHeaderValue(0,
-					                cfg.getRangeFetchLimit() - 1).toString());
-					try
-					{
-						response = fetchResponse(req);
-					}
-					catch (Exception e1)
-					{
-						response.statusCode = 408;
-					}
+					RangeHeaderValue v = new RangeHeaderValue(rangeHeader);
+					rangeStart = (int) v.getFirstBytePos();
 				}
-				else if (e.getClass().getName().contains("OverQuotaException"))
+				req.addHeader("Range", new RangeHeaderValue(rangeStart,
+				        rangeStart + cfg.getRangeFetchLimit() - 1).toString());
+				try
+				{
+					response = fetchResponse(req);
+				}
+				catch (Exception e1)
 				{
 					response.statusCode = 408;
 				}
-				else
-				{
-					response.statusCode = 503;
-				}
+			}
+			else if (e.getClass().getName().contains("OverQuotaException"))
+			{
+				response.statusCode = 408;
 			}
 			else
 			{
