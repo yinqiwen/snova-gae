@@ -1,5 +1,19 @@
 snova-gae Changelog
 ===================
+Changes in version 0.22.0(2012.08.18)
+-------------------------------------------
+
+** Features
+   * New deploy tool(No Java Appengine SDK dependency)
+   * Remove dependency on Appengine
+   * Remove unused features
+   
+** Improvement
+   * Upgrade Snappy lib
+      
+** Task
+   * NA
+
 Changes in version 0.15.0(2012.08.18)
 -------------------------------------------
 

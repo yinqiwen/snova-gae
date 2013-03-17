@@ -39,8 +39,9 @@ public class GAEEvents
 		try
 		{
 			registerEventHandler(HTTPResponseEvent.class, handler);
+			registerEventHandler(HTTPRequestEvent.class, handler);
 			registerEventHandler(HTTPErrorEvent.class, handler);
-			registerEventHandler(EventSegment.class, handler);
+			registerEventHandler(AuthRequestEvent.class, handler);
 			
 			registerEventHandler(CompressEvent.class, handler);
 			registerEventHandler(EncryptEvent.class, handler);

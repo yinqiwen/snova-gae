@@ -6,6 +6,9 @@
 	<property name='warlib' value='${root}/war/WEB-INF/lib' />
 	<property name='serverclass' value='${root}/war/WEB-INF/classes' />
 	<property name="srcroot" value="${root}/src/java" />
+	<property name="deploysrc" value="${root}/deploy/src" />
+	<property name="deploylib" value="${root}/deploy/lib" />
+	<property name="deployclass" value="${root}/deploy/build" />
 	<property name="releasedir" value="${root}/release" />
 	<property name="distroot" value="${root}/lib" />
 	<property name="docdir" value="${root}/doc" />
@@ -13,7 +16,7 @@
 	<property name="deploy" value="${root}/deploy" />
 	<property name="temp" value="${root}/temp" />
 	<property name="release" value="release" />
-	<property name="version" value="0.18.0" />
+	<property name="version" value="0.22.0" />
 	<property name="versionfile" value="org/snova/gae/common/GAEPluginVersion.java" />
 	<property name="release_dir_name" value="gae" />
 	<property name="project_name" value="snova-gae" />
@@ -21,21 +24,42 @@
 	<tstamp />
 	<target name="prepare">
 		<mkdir dir="${serverclass}" />
+		<mkdir dir="${deployclass}" />
 		<mkdir dir="${distroot}" />
 		<copy todir="${warlib}" file="${warlib}/arch.jar" />
 
-		<echo message="package org.snova.gae.common;${line.separator}
+		<echo
+			message="package org.snova.gae.common;${line.separator}
 			public class GAEPluginVersion
 			{${line.separator}
 			   public static final String value = &quot;${version}&quot;;${line.separator}
-			}" file="${srcroot}/${versionfile}" />
-		<echo message="package misc ${line.separator} ${line.separator}const Version = &quot;${version}&quot;" file="${gosrcroot}/${goversionfile}" />
+			}"
+			file="${srcroot}/${versionfile}" />
+	</target>
+
+	<target name="deployerjar" depends="prepare">
+		<javac debug="on" target="1.5" source="1.5" destdir="${deployclass}">
+			<src path="${deploysrc}" />
+			<classpath>
+				<fileset dir="${deploylib}">
+					<include name="*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
+		<jar destfile="${deploylib}/deployer.jar">
+			<fileset dir="${deployclass}" />
+			<manifest>
+				<attribute name="Main-Class" value="org.snova.gae.deploy.Main" />
+				<attribute name="Class-Path" value="appengine-tools-api.jar" />
+			</manifest>
+		</jar>
+		<delete dir="${deployclass}" />
+
 	</target>
 
 	<target name="compile-server" depends="prepare">
-		<javac debug="on" destdir="${serverclass}">
+		<javac debug="on" target="1.5" source="1.5" destdir="${serverclass}">
 			<src path="${srcroot}" />
-			<exclude name="org/snova/gae/client/**/*" />
 			<classpath>
 				<fileset dir="${warlib}">
 					<include name="*.jar" />
@@ -45,14 +69,15 @@
 		</javac>
 	</target>
 
-	<target name="compile" depends=" compile-server" />
+	<target name="compile" depends=" compile-server,deployerjar" />
 
 
-	<target name="packageserver" depends="compile-server">
-		<property name="releaseserverdir" value="${releasedir}/${project_name}-jserver-${version}" />
-		<property name="goreleasedir" value="${releasedir}/${project_name}-gserver-${version}" />
+	<target name="packageserver" depends="compile">
+		<property name="releaseserverdir"
+			value="${releasedir}/${project_name}-jserver-${version}" />
 		<property name="destdir" value="${releasedir}/${release_dir_name}/deploy" />
 		<mkdir dir="${releaseserverdir}/war" />
+		<mkdir dir="${releaseserverdir}/deploy" />
 		<copy todir="${releaseserverdir}/war">
 			<fileset dir="${root}/war">
 				<exclude name="**/images/**" />
@@ -65,12 +90,21 @@
 				<exclude name="**/log4j.properties" />
 			</fileset>
 		</copy>
-
+		
+		<copy todir="${releaseserverdir}/deploy">
+			<fileset dir="${deploy}">
+				<exclude name="deploy.*" />
+				
+			</fileset>
+		</copy>
 		<copy todir="${releaseserverdir}">
-			<fileset dir="${deploy}" />
+			<fileset dir="${deploy}">
+				<include name="deploy.*" />
+			</fileset>
 		</copy>
 
-		<zip destfile="${project_name}-jserver-${version}.zip" basedir="${releasedir}" includes="${project_name}-jserver-${version}/**" />
+		<zip destfile="${project_name}-jserver-${version}.zip" basedir="${releasedir}"
+			includes="${project_name}-jserver-${version}/**" />
 		<delete dir="${releasedir}" />
 	</target>
 

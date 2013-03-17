@@ -6,10 +6,7 @@
   <body>
     <table width="800" border="0" align="center">
             <tr><td align="center">
-                <b><h1>root password:%s</h1></b>
-            </td></tr>
-             <tr><td align="center">
-                <a href="%s">sign out</a>
+                <b><h1>All Users:%s</h1></b>
             </td></tr>
     </table>
   </body>

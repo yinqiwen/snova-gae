@@ -48,7 +48,7 @@ public class ServerConfiguration
 		this.encrypter = encypter;
 	}
 	
-	private CompressorType	compressor	  = CompressorType.LZ4;
+	private CompressorType	compressor	  = CompressorType.SNAPPY;
 	private EncryptType	   encrypter	  = EncryptType.SE1;
 	
 	private Set<String>	   compressFilter	= new HashSet<String>();
