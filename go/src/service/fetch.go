@@ -49,8 +49,12 @@ func fillErrorResponse(ev *event.HTTPResponseEvent, cause string) {
 
 func Fetch(context appengine.Context, ev *event.HTTPRequestEvent) event.Event {
 	errorResponse := new(event.HTTPResponseEvent)
-	if ServerConfig.IsMaster == 1 {
+	if Cfg.IsMaster == 1 {
 		fillErrorResponse(errorResponse, "Proxy service is no enable in snova master node.")
+		return errorResponse
+	}
+	if isInBlacklist(ev.GetHeader("Host")) {
+		fillErrorResponse(errorResponse, "Current site is in blacklist.")
 		return errorResponse
 	}
 	req := buildHTTPRequest(ev)
@@ -66,7 +70,7 @@ func Fetch(context appengine.Context, ev *event.HTTPRequestEvent) event.Event {
 	t.AllowInvalidServerCertificate = true
 	//t := &transport
 	//t := &urlfetch.Transport{context, 0, true}
-	retryCount := ServerConfig.RetryFetchCount
+	retryCount := Cfg.RetryFetchCount
 	for retryCount > 0 {
 		resp, err := t.RoundTrip(req)
 		if err == nil {
@@ -79,11 +83,11 @@ func Fetch(context appengine.Context, ev *event.HTTPRequestEvent) event.Event {
 			}
 			return res
 		}
-		context.Errorf("Failed to fetch URL[%s] for reason:%s", ev.Url, err.Error())
+		context.Errorf("Failed to fetch URL[%s] for reason:%v", ev.Url, err)
 		retryCount--
 		if req.Header.Get("Range") == "" {
-			rangeLimit := ServerConfig.RangeFetchLimit
-			req.Header.Set("Range", strconv.FormatInt(int64(rangeLimit-1), 10))
+			rangeLimit := Cfg.RangeFetchLimit
+			req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", rangeLimit-1))
 		}
 	}
 	errorResponse.Status = 408

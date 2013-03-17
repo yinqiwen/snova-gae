@@ -1,3 +1,3 @@
-package misc 
- 
-const Version = "0.17.2"
+package misc
+
+const Version = "0.22.0"

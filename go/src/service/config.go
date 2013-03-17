@@ -2,153 +2,113 @@ package service
 
 import (
 	"appengine"
-	"appengine/datastore"
 	//"appengine/memcache"
 	"event"
 	//"bytes"
 	//"codec"
-	"strconv"
+	//"strconv"
 	"strings"
+	"util"
 )
 
-func initServerConfig() *event.GAEServerConfig {
-	cfg := new(event.GAEServerConfig)
+type ServerConfig struct {
+	RangeFetchLimit uint32
+	CompressType    uint32
+	EncryptType     uint32
+	IsMaster        uint32
+	RetryFetchCount uint32
+	CompressFilter  map[string]string
+	AllUsers        map[string]string
+	Blacklist       map[string]string
+}
+
+func initServerConfig() *ServerConfig {
+	cfg := new(ServerConfig)
 	cfg.RetryFetchCount = 2
 	cfg.RangeFetchLimit = 256 * 1024
-	cfg.MaxXMPPDataPackageSize = 40960
 	cfg.CompressType = event.COMPRESSOR_SNAPPY
 	cfg.EncryptType = event.ENCRYPTER_SE1
 	cfg.IsMaster = 0
 	cfg.CompressFilter = make(map[string]string)
+	cfg.AllUsers = make(map[string]string)
+	cfg.Blacklist = make(map[string]string)
 	return cfg
 }
 
-var ServerConfig = initServerConfig()
+var Cfg = initServerConfig()
 
-func toPropertyList() datastore.PropertyList {
-	var ret = make(datastore.PropertyList, 0, 6)
-	ret = append(ret, datastore.Property{
-		Name:  "RetryFetchCount",
-		Value: strconv.FormatInt(int64(ServerConfig.RetryFetchCount), 10),
-	})
-	ret = append(ret, datastore.Property{
-		Name:  "RangeFetchLimit",
-		Value: strconv.FormatInt(int64(ServerConfig.RangeFetchLimit), 10),
-	})
-	ret = append(ret, datastore.Property{
-		Name:  "MaxXMPPDataPackageSize",
-		Value: strconv.FormatInt(int64(ServerConfig.MaxXMPPDataPackageSize), 10),
-	})
-	ret = append(ret, datastore.Property{
-		Name:  "CompressType",
-		Value: strconv.FormatInt(int64(ServerConfig.CompressType), 10),
-	})
-	ret = append(ret, datastore.Property{
-		Name:  "EncryptType",
-		Value: strconv.FormatInt(int64(ServerConfig.EncryptType), 10),
-	})
-	ret = append(ret, datastore.Property{
-		Name:  "IsMaster",
-		Value: strconv.FormatInt(int64(ServerConfig.IsMaster), 10),
-	})
-	var tmp string
-	for key, _ := range ServerConfig.CompressFilter {
-		tmp += key
-		tmp += ";"
+func fromIni(ini *util.Ini) {
+	if tmp, exist := ini.GetIntProperty("Misc", "RangeFetchLimit"); exist {
+		Cfg.RangeFetchLimit = uint32(tmp)
 	}
-	ret = append(ret, datastore.Property{
-		Name:  "CompressFilter",
-		Value: tmp,
-	})
-	return ret
-}
-
-func fromPropertyList(item datastore.PropertyList) {
-	for _, v := range item {
-		switch v.Name {
-		case "RetryFetchCount":
-			tmp, _ := strconv.ParseUint(v.Value.(string), 10, 64)
-			ServerConfig.RetryFetchCount = uint32(tmp)
-		case "RangeFetchLimit":
-			tmp, _ := strconv.ParseUint(v.Value.(string), 10, 64)
-			ServerConfig.RangeFetchLimit = uint32(tmp)
-		case "MaxXMPPDataPackageSize":
-			tmp, _ := strconv.ParseUint(v.Value.(string), 10, 64)
-			ServerConfig.MaxXMPPDataPackageSize = uint32(tmp)
-		case "CompressType":
-			tmp, _ := strconv.ParseUint(v.Value.(string), 10, 64)
-			ServerConfig.CompressType = uint32(tmp)
-		case "EncryptType":
-			tmp, _ := strconv.ParseUint(v.Value.(string), 10, 64)
-			ServerConfig.EncryptType = uint32(tmp)
-		case "IsMaster":
-			tmp, _ := strconv.ParseUint(v.Value.(string), 10, 64)
-			ServerConfig.IsMaster = uint8(tmp)
-		case "CompressFilter":
-			str := v.Value.(string)
-			ss := strings.Split(str, ";")
-			for _, s := range ss {
-				s = strings.TrimSpace(s)
-				if len(s) > 0 {
-					ServerConfig.CompressFilter[s] = s
-				}
+	if tmp, exist := ini.GetIntProperty("Misc", "IsMaster"); exist {
+		Cfg.IsMaster = uint32(tmp)
+	}
+	allusers, _ := ini.GetProperty("Auth", "Users")
+	if len(allusers) > 0 {
+		us := strings.Split(allusers, "|")
+		for _, up := range us {
+			tmp := strings.Split(up, ":")
+			if len(tmp) == 2 {
+				Cfg.AllUsers[tmp[0]] = tmp[1]
 			}
 		}
 	}
+	bs, _ := ini.GetProperty("Auth", "Blacklist")
+	if len(bs) > 0 {
+		bss := strings.Split(bs, "|")
+		for _, b := range bss {
+			Cfg.Blacklist[b] = "1"
+		}
+	}
+	cs, _ := ini.GetProperty("Compress", "Filter")
+	if len(cs) > 0 {
+		css := strings.Split(cs, "|")
+		for _, c := range css {
+			Cfg.CompressFilter[c] = "1"
+		}
+	}
+	ct, _ := ini.GetProperty("Compress", "Compressor")
+	if strings.EqualFold(ct, "None") {
+		Cfg.CompressType = event.COMPRESSOR_NONE
+	}
 }
 
-func SaveServerConfig(ctx appengine.Context) {
-	key := datastore.NewKey(ctx, "ServerConfig", "", 1, nil)
-	item := toPropertyList()
-	_, err := datastore.Put(ctx, key, &item)
-	if err != nil {
-		return
+func isValidUser(user, passwd string) bool {
+	for u, p := range Cfg.AllUsers {
+		if u == user && p == passwd {
+			return true
+		}
 	}
-	if ServerConfig.IsMaster == 1 {
-		InitMasterService(ctx)
+	return false
+}
+
+func isContentTypeInCompressFilter(t string) bool {
+	for k, _ := range Cfg.CompressFilter {
+		if strings.Contains(t, k) {
+			return true
+		}
 	}
+	return true
+}
+
+func isInBlacklist(host string) bool {
+	for k, _ := range Cfg.Blacklist {
+		if strings.Contains(host, k) {
+			return true
+		}
+	}
+	return false
 }
 
 func LoadServerConfig(ctx appengine.Context) {
-	//if item, err := memcache.Get(ctx, "ServerConfig:"); err == nil {
-	//	buf := bytes.NewBuffer(item.Value)
-	//	if ServerConfig.Decode(buf) {
-	//		return
-	//	}
-	//}
-	var item datastore.PropertyList
-	key := datastore.NewKey(ctx, "ServerConfig", "", 1, nil)
-	if err := datastore.Get(ctx, key, &item); err != nil {
-		SaveServerConfig(ctx)
+	ini, err := util.LoadIniFile("snova.conf")
+	if nil != err {
+		ctx.Errorf("Failed to load config:%v", err)
 		return
+	} else {
+		ctx.Infof("Load config snova.conf success.")
 	}
-	fromPropertyList(item)
-	//var buf bytes.Buffer
-	//ServerConfig.Encode(&buf)
-	//memitem := &memcache.Item{
-	//	Key:   "ServerConfig:",
-	//	Value: buf.Bytes(),
-	//}
-	//memcache.Set(ctx, memitem)
-}
-
-func HandlerConfigEvent(ctx appengine.Context, ev *event.ServerConfigEvent) event.Event {
-	//ctx.Infof("Operation is  :%d",  ev.Operation)
-	switch ev.Operation {
-	case event.GET_CONFIG_REQ:
-		res := new(event.ServerConfigEvent)
-		res.Operation = event.GET_CONFIG_RES
-		res.Cfg = ServerConfig
-		return res
-	case event.SET_CONFIG_REQ:
-		if nil != ev.Cfg {
-			ServerConfig = ev.Cfg
-			SaveServerConfig(ctx)
-		}
-		res := new(event.ServerConfigEvent)
-		res.Operation = event.SET_CONFIG_RES
-		res.Cfg = ServerConfig
-		return res
-	}
-	return nil
+	fromIni(ini)
+	//ctx.Infof("######%v  %d", Cfg.AllUsers, len(Cfg.AllUsers))
 }

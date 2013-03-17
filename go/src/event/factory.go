@@ -80,8 +80,8 @@ func Init() {
 	RegistEvent(&SocketConnectionEvent{})
 	RegistEvent(&UserLoginEvent{})
 	RegistEvent(&RSocketAcceptedEvent{})
-	RegistEvent(&AdminResponseEvent{})
 	RegistEvent(&SocketReadEvent{})
 	RegistEvent(&SocketConnectWithDataEvent{})
 	RegistEvent(&RequestAppIDEvent{})
+	RegistEvent(&ShareAppIDEvent{})
 }
