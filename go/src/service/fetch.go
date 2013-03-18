@@ -96,6 +96,11 @@ func Fetch(context appengine.Context, ev *event.HTTPRequestEvent) event.Event {
 			}
 			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", rangestart, rangeLimit-1))
 		}
+		if strings.Contains(err.Error(), "RESPONSE_TOO_LARGE"){
+			time.Sleep(1 * time.Second)
+			return Fetch(context, ev)
+		}
+		
 	}
 	errorResponse.Status = 408
 	fillErrorResponse(errorResponse, "Fetch timeout for url:"+ev.Url)

@@ -80,6 +80,10 @@ public class ServerConfiguration
 	
 	public boolean isInBlacklist(String host)
 	{
+		if(null == host)
+		{
+			return false;
+		}
 		for (String rule : blacklist)
 		{
 			if (host.indexOf(rule) != -1)
