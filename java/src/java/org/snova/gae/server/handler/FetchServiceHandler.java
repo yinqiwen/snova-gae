@@ -175,6 +175,10 @@ public class FetchServiceHandler
 				response.statusCode = 503;
 			}
 		}
+		if(req.containsHeader("Range") && response.containsHeader("X-Range"))
+		{
+			response.addHeader("X-Range", req.getHeader("Range"));
+		}
 		return response;
 	}
 }

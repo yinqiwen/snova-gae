@@ -104,6 +104,10 @@ func Fetch(context appengine.Context, ev *event.HTTPRequestEvent) event.Event {
 	}
 	errorResponse.Status = 408
 	fillErrorResponse(errorResponse, "Fetch timeout for url:"+ev.Url)
+	rangeHeader := req.Header.Get("Range")
+	if len(rangeHeader) >0{
+		errorResponse.SetHeader("X-Range", rangeHeader)
+	}
 	return errorResponse
 
 }
