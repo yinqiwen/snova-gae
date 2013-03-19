@@ -147,7 +147,8 @@ public class FetchServiceHandler
 		}
 		catch (Throwable e)
 		{
-			logger.error("Failed to fetch URL:" + req.url, e);
+			logger.error("Failed to fetch URL:" + req.url + " with reason:"
+			        + e.getMessage());
 			if (e.getClass().getName().contains("ResponseTooLargeException"))
 			{
 				String rangeHeader = req.getHeader("Range");
@@ -163,10 +164,13 @@ public class FetchServiceHandler
 			}
 			else if (e.getClass().getName().contains("OverQuotaException"))
 			{
-				try {
+				try
+				{
 					Thread.sleep(1000);
 					return fetch(req);
-				} catch (InterruptedException e1) {
+				}
+				catch (InterruptedException e1)
+				{
 					response.statusCode = 408;
 				}
 			}
@@ -175,7 +179,7 @@ public class FetchServiceHandler
 				response.statusCode = 503;
 			}
 		}
-		if(req.containsHeader("Range") && response.containsHeader("X-Range"))
+		if (req.containsHeader("Range") && response.containsHeader("X-Range"))
 		{
 			response.addHeader("X-Range", req.getHeader("Range"));
 		}
