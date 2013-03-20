@@ -21,7 +21,7 @@ import org.snova.gae.common.http.RangeHeaderValue;
 import org.snova.gae.server.config.ServerConfiguration;
 
 /**
- * @author qiyingwang
+ * @author yinqiwen
  * 
  */
 public class FetchServiceHandler

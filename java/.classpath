@@ -6,5 +6,6 @@
 	<classpathentry kind="lib" path="war/WEB-INF/lib/slf4j-jdk14-1.6.4.jar"/>
 	<classpathentry kind="lib" path="lib/geronimo-servlet_2.5_spec-1.2.jar"/>
 	<classpathentry kind="lib" path="deploy/lib/appengine-tools-api.jar"/>
+	<classpathentry kind="lib" path="war/WEB-INF/lib/arch.jar"/>
 	<classpathentry kind="output" path="war/WEB-INF/classes"/>
 </classpath>
